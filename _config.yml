@@ -20,8 +20,9 @@
 
 title: __stratagyn__
 favicon_ico: "/assets/images/stratagyn.ico"
-url: "https://stratagyn.github.io" # the base hostname & protocol for your site, e.g. http://example.com
+url: "https://stratagyn.github.io"
 github_username:  stratagyn
+repository: stratagyn/stratagyn.github.io
 
 # Build settings
 theme: just-the-docs
