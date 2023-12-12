@@ -1,0 +1,31 @@
+.main {
+   margin-left: Max(16.5rem, calc((100% - 87.5rem) / 2 + 16.5rem));
+   max-width: 67rem;
+}
+
+.nav-list-link {
+   color: white
+}
+
+.side-bar {
+   width: calc((100% - 93rem) / 2 + 16.5rem);
+}
+
+.stratagyn-method-name {
+   color: rgb(226, 34, 114)
+}
+
+.stratagyn-method-signature {
+   background-color: transparent;
+   display: block;
+   font-size: 1.2135rem !important;
+   margin-top: 34px;
+}
+
+li > a, li > span, p, th, td {
+   font-size: 1.25rem !important;
+}
+
+pre > code, th > code, td > code {
+   font-size: 1.2135rem;
+}
