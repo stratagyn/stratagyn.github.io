@@ -1,7 +1,7 @@
 ---
 layout: page
 title: Parse Results
-parent: / atomize
+parent: / Atomize
 nav_order: 2
 has_children: true
 has_toc: false
@@ -11,41 +11,41 @@ has_toc: false
 
 ---
 
-`IParseResult<T>` is the interface for parse attempts.
+Interface for results returned from parse attempts.
 
 # Instance Properties
 
 ---
 
-Whether the result is a successful one or failure
+<code class="stratagyn-method-signature">
+   <b class="stratagyn-method-name">IsToken</b> &#10140; bool
+</code>
 
-```
-IsToken :: bool
-```
+> Whether the result is a successful one or failure
 
-Number of characters matched
+<code class="stratagyn-method-signature">
+   <b class="stratagyn-method-name">Length</b> &#10140; int
+</code>
 
-```
-Length :: int
-```
+> Number of characters matched
 
-Where in the text the match was attempted
+<code class="stratagyn-method-signature">
+   <b class="stratagyn-method-name">Offset</b> &#10140; int
+</code>
 
-```
-Offset :: int
-```
+> Where in the text the match began
 
-Reason why a successful match was not made
+<code class="stratagyn-method-signature">
+   <b class="stratagyn-method-name">Why</b> &#10140; string
+</code>
 
-```
-Why :: string
-```
+> Reason why a successful match was not made
 
-The token of a successful parse
+<code class="stratagyn-method-signature">
+   <b class="stratagyn-method-name">Value</b> &#10140; T?
+</code>
 
-```
-Value :: T?
-```
+> The token of a successful parse
 
 # Implemented By
 

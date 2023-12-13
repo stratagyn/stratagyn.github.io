@@ -2,11 +2,11 @@
 layout: page
 title: Lexeme
 parent: Parse Results
-grand_parent: / atomize
+grand_parent: / Atomize
 nav_order: 2
 ---
 
-# `Lexeme<T>`
+# `Lexeme<T> : IParseResult<T>`
 
 ---
 
@@ -16,8 +16,8 @@ A successful parse at the given `Offset`, consuming `Length` characters. `Value`
 
 ---
 
-Constructs a `Lexeme` for a given index, length, and value.
+<code class="stratagyn-method-signature">
+   <b class="stratagyn-method-name">Lexeme</b>(int, int, T) &#10140; Lexeme&lt;T&gt;
+</code>
 
-```
-Failure t :: (int, int, t) > Lexeme t
-```
+> Constructs a `Lexeme` for a given index, length, and value.

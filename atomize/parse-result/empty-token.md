@@ -2,11 +2,11 @@
 layout: page
 title: Empty Token
 parent: Parse Results
-grand_parent: / atomize
+grand_parent: / Atomize
 nav_order: 1
 ---
 
-# `EmptyToken<T>`
+# `EmptyToken<T> : IParseResult<T>`
 
 ---
 
@@ -16,8 +16,8 @@ A successful parse that records no information about any characters consumed. Th
 
 ---
 
-Constructs an `EmptyToken` for a given index.
+<code class="stratagyn-method-signature">
+   <b class="stratagyn-method-name">EmptyToken</b>(int) &#10140; EmptyToken&lt;T&gt;
+</code>
 
-```
-EmptyToken t :: int > EmptyToken t
-```
+> Constructs an `EmptyToken` for a given index.

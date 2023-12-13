@@ -18,5 +18,5 @@ A functional macro processor library with support for state management and multi
 # Installation
 
 ```
-dotnet add package AtoMac
+dotnet add package Mackerel
 ```

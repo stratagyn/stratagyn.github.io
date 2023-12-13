@@ -2,11 +2,11 @@
 layout: page
 title: Failure
 parent: Parse Results
-grand_parent: / atomize
+grand_parent: / Atomize
 nav_order: 3
 ---
 
-# `Failure<T>`
+# `Failure<T> : IParseResult<T>`
 
 ---
 
@@ -16,8 +16,8 @@ A failed parse at the given `Offset`, explained by `Why`. All other properties a
 
 ---
 
-Constructs a `Failure` for a given index and reason.
+<code class="stratagyn-method-signature">
+   <b class="stratagyn-method-name">Failure</b>(int, string) &#10140; Failure&lt;T&gt;
+</code>
 
-```
-Failure t :: (int, string) > Failure t
-```
+> Constructs a `Failure` for a given index and reason.
