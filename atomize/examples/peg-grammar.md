@@ -14,10 +14,10 @@ nav_order: 2
 Grammar        : Rule+;
 Rule           : IDENTIFIER ':' OrderedChoice ';';
 OrderedChoice  : Sequence ('|' Sequence)*;
-Sequence       : Repetition (' ' Repetition)*;
+Sequence       : Repetition (/\s+/ Repetition)*;
 Repetition     : Assertion /[*+?]/?;
-Assertion      : Atomic /[&!]/?;
-Atomic         : STRING | REGEX | IDENTIFIER | '(' OrderedChoice ')'
+Assertion      : /[&!]/? Atomic;
+Atomic         : STRING | REGEX | IDENTIFIER | '(' OrderedChoice ')';
 ```
 
 # Metadata
