@@ -2,6 +2,8 @@
 
 ---
 
+Iterator over individual bytes of a bit string.
+
 ```rust
 pub struct IntoBytes { ... }
 ```
