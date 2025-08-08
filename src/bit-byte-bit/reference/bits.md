@@ -3,20 +3,20 @@
 ---
 
 > ```rust
-> pub struct Bits { ... }
+> pub struct Bits { /* private fields */ }
 > ```
 
-## `impl Bits`
+Implements a byte-oriented bit string.
+
+# Implementation
 
 ---
 
 > ```rust
-> pub fn new<I: IntoIterator<Item = u8>>(bits: I) -> Self
+> pub fn new<I: IntoIterator<Item = u8>>(bits: I) -> Bits
 > ```
 > 
 > Creates a bit string from a sequence of bytes.
-> 
-> To ignore leading zeros use `Bits::from` or `Bits::from_iter`.
 >
 > ```rust
 > let mut x = Bits::new([0x0A, 0x0B, 0x0C, 0x00]);
@@ -25,7 +25,7 @@
 > ```
 
 > ```rust
-> pub fn aligned<I: IntoIterator<Item = u8>>(units: usize, bits: I) -> Self
+> pub fn aligned<I: IntoIterator<Item = u8>>(units: usize, bits: I) -> Bits
 > ```
 > 
 >Creates a bit string with an aligned length.
@@ -38,7 +38,7 @@
 > ```
 
 > ```rust
-> pub fn empty() -> Self
+> pub fn empty() -> Bits
 > ```
 > 
 > Creates an empty bit string.
@@ -50,7 +50,7 @@
 > ```
 
 > ```rust
-> pub fn ones(length: usize) -> Self
+> pub fn ones(length: usize) -> Bits
 > ```
 > 
 > Creates a bit string of ones.
@@ -63,7 +63,7 @@
 > ```
 
 > ```rust
-> pub fn packed<I: IntoIterator<Item = u8>>(bytes: I) -> Self
+> pub fn packed<I: IntoIterator<Item = u8>>(bytes: I) -> Bits
 > ```
 > 
 > Creates a bit string by concatenating a slice of bytes removing leading zeros.
@@ -80,7 +80,7 @@
 > ```
 
 > ```rust
-> pub fn slice(src: &[u8], length: usize) -> Self
+> pub fn slice(src: &[u8], length: usize) -> Bits
 > ```
 > 
 > Creates a bit string by copying a given number of bits from a slice of bytes.
@@ -106,7 +106,7 @@
 > ```
 
 > ```rust
-> pub fn take(src: &[u8], start: usize, length: usize) -> Self
+> pub fn take(src: &[u8], start: usize, length: usize) -> Bits
 > ```
 > 
 > Creates a bit string by copying a given range of bits from a slice of bytes.
@@ -140,7 +140,7 @@
 > ```
 
 > ```rust
-> pub fn zeros(length: usize) -> Self
+> pub fn zeros(length: usize) -> Bits
 > ```
 > 
 > Creates a bit string of zeros.
@@ -266,7 +266,7 @@
 > assert_eq!(x.byte(1), 0x0B);
 > ```
 >
-> <span style="color: red"><span style="color: red">ⓘ</span></span>
+> <span style="color: red">ⓘ</span>
 > ```rust
 > let mut x = Bits::from([0x0A, 0x0B]);
 > 
@@ -855,22 +855,6 @@
 > ```
 
 > ```rust
-> pub fn reversed(&self) -> Bits
-> ```
->
-> Reverses the order of the bits.
-> 
-> ```rust
-> let x1 = Bits::from([0x0A, 0x0B, 0x0C]);
->
-> assert_eq!(x1.reversed(), Bits::slice(&[0x03, 0x0D, 0x05], 20));
-> 
-> let x2 = Bits::new([0x0A, 0x0B, 0x0C]);
-> 
-> assert_eq!(x2.reversed(), Bits::new([0x30, 0xD0, 0x50]));
-> ```
-
-> ```rust
 > pub fn rotate_left(&mut self, count: usize)
 > ```
 >
@@ -893,7 +877,7 @@
 > ```
 
 > ```rust
-> pub fn rotated_left(&self, count: usize) -> Self
+> pub fn rotated_left(&self, count: usize) -> Bits
 > ```
 >
 > Rotates bits to the left.
@@ -933,7 +917,7 @@
 > ```
 
 > ```rust
-> pub fn rotated_right(&self, count: usize) -> Self
+> pub fn rotated_right(&self, count: usize) -> Bits
 > ```
 >
 > Rotates bits to the right.
@@ -1074,7 +1058,7 @@
 > ```
 
 > ```rust
-> pub fn shifted_left(&self, count: usize) -> Self
+> pub fn shifted_left(&self, count: usize) -> Bits
 > ```
 >
 > Shifts out upper bits, shifting in zeros on the lower end.
@@ -1116,7 +1100,7 @@
 > ```
 
 > ```rust
-> pub fn shifted_right(&self, count: usize) -> Self
+> pub fn shifted_right(&self, count: usize) -> Bits
 > ```
 >
 > Shifts out lower bits, shifting zeros into the upper bits.
@@ -1472,17 +1456,17 @@
 > ```
 
 > ```rust
-> pub fn xrange<R: RangeBounds<usize>>(&self, bounds: R) -> Self
+> pub fn xrange<R>(bounds: R) -> Bits
+> where R: RangeBounds<usize>
 > ```
->
+> 
 > Creates a bit string by copying a range of bits.
 >
 > The range is truncated to take no more than the number of available bits from the
-> starting bound. For alternative behavior, consider `Bits::take`, which pads zeros
+> starting bound. For alternative behavior, consider [Bits::take], which pads zeros
 > when the length exceeds the number of available bits.
 >
 > ```rust
-> # use bit_byte_bit::{Bits};
 > let x1 = Bits::empty();
 > let x1_r1 = x1.xrange(1..18);
 >
@@ -1518,12 +1502,14 @@
 >
 > let x3_r6 = x3.xrange(8..0);
 >
-> as>t_eq!(x3_r6, Bits::empty());
-> ``>Trait Implementations
+> assert_eq!(x3_r6, Bits::empty());
+>```
+
+# Traits
 
 ---
 
-## `impl Binary for Bits`
+## `Binary`
 
 ---
 
@@ -1531,15 +1517,18 @@
 > fn fmt(&self, f: &mut Formatter<'_>) -> Result
 > ```
 >
-> Formats the value using the given formatter. Read more
+> Formats the value using the given formatter.
 
 
-## `impl BitAnd<&Bits> for &Bits`
+## `BitAnd`
 
 ---
 
 > ```rust
-> fn bitand(self, rhs: &Bits) -> Self::Output
+> fn bitand(self, rhs: Bits) -> Bits
+> fn bitand(self, rhs: &Bits) -> Bits
+> fn bitand(&'a self, rhs: Bits) -> Bits
+> fn bitand(&self, rhs: &Bits) -> Bits
 > ```
 >
 > Bitwise and of two bit strings.
@@ -1569,80 +1558,12 @@
 
 
 
-## `impl BitAnd<&Bits> for Bits`
+## `BitAndAssign`
 
 ---
 
 > ```rust
-> fn bitand(self, rhs: &Bits) -> Self::Output
-> ```
->
-> Bitwise and of two bit strings.
-> 
-> ```rust
-> type Output = Bits
-> ```
-> 
-> The resulting type after applying the & operator.
-> 
-> ```rust
-> let x1 = Bits::from([0x20, 0x30, 0x40]);
-> let y1 = Bits::from([0xA0, 0xB0, 0xC0]);
-> 
-> assert_eq!(x1 & &y1, Bits::new([0x20, 0x30, 0x40]));
-> 
-> let x2 = Bits::from([0x20, 0x30, 0x40]);
-> let y2 = Bits::from([0x0A, 0xB0, 0xC0]);
-> 
-> assert_eq!(x2.len(), 23);
-> assert_eq!(y2.len(), 24);
-> 
-> let z = x2 & &y2;
-> 
-> assert_eq!(z.len(), 24);
-> ```
-
-
-
-## `impl BitAnd for Bits`
-
----
-
-> ```rust
-> fn bitand(self, rhs: Self) -> Self::Output
-> ```
->
-> Bitwise and of two bit strings.
-> 
-> ```rust
-> type Output = Bits
-> ```
-> 
-> The resulting type after applying the & operator.
-> 
-> ```rust
-> let x1 = Bits::from([0x20, 0x30, 0x40]);
-> let y1 = Bits::from([0xA0, 0xB0, 0xC0]);
-> 
-> assert_eq!(x1 & y1, Bits::new([0x20, 0x30, 0x40]));
-> 
-> let x2 = Bits::from([0x20, 0x30, 0x40]);
-> let y2 = Bits::from([0x0A, 0xB0, 0xC0]);
-> 
-> assert_eq!(x2.len(), 23);
-> assert_eq!(y2.len(), 24);
-> 
-> let z = x2 & y2;
-> 
-> assert_eq!(z.len(), 24);
-> ```
-
-
-## `impl BitAndAssign<&Bits> for Bits`
-
----
-
-> ```rust
+> fn bitand_assign(&mut self, rhs: Bits)
 > fn bitand_assign(&mut self, rhs: &Bits)
 > ```
 >
@@ -1667,41 +1588,16 @@
 > assert_eq!(x2.len(), 24);
 > ```
 
-## `impl BitAndAssign for Bits`
+
+## `BitOr`
 
 ---
 
 > ```rust
-> fn bitand_assign(&mut self, rhs: Self)
-> ```
->
-> Bitwise and of two bit strings.
-> 
-> ```rust
-> let mut x1 = Bits::from([0x20, 0x30, 0x40]);
-> let y1 = Bits::from([0xA0, 0xB0, 0xC0]);
-> 
-> x1 &= y1;
-> 
-> assert_eq!(x1, Bits::new([0x20, 0x30, 0x40]));
-> 
-> let mut x2 = Bits::from([0x20, 0x30, 0x40]);
-> let y2 = Bits::from([0x0A, 0xB0, 0xC0]);
-> 
-> assert_eq!(x2.len(), 23);
-> assert_eq!(y2.len(), 24);
-> 
-> x2 &= y2;
-> 
-> assert_eq!(x2.len(), 24);
-> ```
-
-## `impl BitOr<&Bits> for &Bits`
-
----
-
-> ```rust
-> fn bitor(self, rhs: &Bits) -> Self::Output
+> fn bitor(self, rhs: Bits) -> Bits
+> fn bitor(self, rhs: &Bits) -> Bits
+> fn bitor(&'a self, rhs: Bits) -> Bits
+> fn bitor(&self, rhs: &Bits) -> Bits
 > ```
 >
 > Bitwise or of two bit strings.
@@ -1730,81 +1626,12 @@
 > ```
 
 
-
-## `impl BitOr<&Bits> for Bits`
-
----
-
-> ```rust
-> fn bitor(self, rhs: &Bits) -> Self::Output
-> ```
->
-> Bitwise or of two bit strings.
-> 
-> ```rust
-> type Output = Bits
-> ```
->
-> The resulting type after applying the \| operator. 
-> 
-> ```rust
-> let x1 = Bits::from([0x20, 0x30, 0x40]);
-> let y1 = Bits::from([0xA0, 0xB0, 0xC0]);
-> 
-> assert_eq!(x1 | &y1, Bits::from([0xA0, 0xB0, 0xC0]));
-> 
-> let x2 = Bits::from([0x20, 0x30, 0x40]);
-> let y2 = Bits::from([0x0A, 0xB0, 0xC0]);
-> 
-> assert_eq!(x2.len(), 23);
-> assert_eq!(y2.len(), 24);
-> 
-> let z = x2 | &y2;
-> 
-> assert_eq!(z.len(), 24);
-> ```
-
-
-## `impl BitOr for Bits`
+## `BitOrAssign`
 
 ---
 
 > ```rust
-> fn bitor(self, rhs: Self) -> Self::Output
-> ```
->
-> Bitwise or of two bit strings.
-> 
-> ```rust
-> type Output = Bits
-> ```
-> 
-> The resulting type after applying the \| operator.
-> 
-> ```rust
-> let x1 = Bits::from([0x20, 0x30, 0x40]);
-> let y1 = Bits::from([0xA0, 0xB0, 0xC0]);
-> 
-> assert_eq!(x1 | y1, Bits::from([0xA0, 0xB0, 0xC0]));
-> 
-> let x2 = Bits::from([0x20, 0x30, 0x40]);
-> let y2 = Bits::from([0x0A, 0xB0, 0xC0]);
-> 
-> assert_eq!(x2.len(), 23);
-> assert_eq!(y2.len(), 24);
-> 
-> let z = x2 | y2;
-> 
-> assert_eq!(z.len(), 24);
-> ```
-
-
-
-## `impl BitOrAssign<&Bits> for Bits`
-
----
-
-> ```rust
+> fn bitor_assign(&mut self, rhs: Bits)
 > fn bitor_assign(&mut self, rhs: &Bits)
 > ```
 >
@@ -1829,41 +1656,17 @@
 > assert_eq!(x2.len(), 24);
 > ```
 
-## `impl BitOrAssign for Bits`
+
+
+## `BitXor`
 
 ---
 
 > ```rust
-> fn bitor_assign(&mut self, rhs: Self)
-> ```
->
-> Bitwise or of two bit strings.
-> 
-> ```rust
-> let mut x1 = Bits::from([0x20, 0x30, 0x40]);
-> let y1 = Bits::from([0xA0, 0xB0, 0xC0]);
-> 
-> x1 |= y1;
-> 
-> assert_eq!(x1, Bits::from([0xA0, 0xB0, 0xC0]));
-> 
-> let mut x2 = Bits::from([0x20, 0x30, 0x40]);
-> let y2 = Bits::from([0x0A, 0xB0, 0xC0]);
-> 
-> assert_eq!(x2.len(), 23);
-> assert_eq!(y2.len(), 24);
-> 
-> x2 |= y2;
-> 
-> assert_eq!(x2.len(), 24);
-> ```
-
-## `impl BitXor<&Bits> for &Bits`
-
----
-
-> ```rust
-> fn bitxor(self, rhs: &Bits) -> Self::Output
+> fn bitxor(self, rhs: Bits) -> Bits
+> fn bitxor(self, rhs: &Bits) -> Bits
+> fn bitxor(&'a self, rhs: Bits) -> Bits
+> fn bitxor(&self, rhs: &Bits) -> Bits
 > ```
 > 
 > Bitwise exclusive or of two bit strings.
@@ -1892,82 +1695,12 @@
 > ```
 
 
-
-## `impl BitXor<&Bits> for Bits`
-
----
-
-> ```rust
-> fn bitxor(self, rhs: &Bits) -> Self::Output
-> ```
-> 
-> Bitwise exclusive or of two bit strings.
-> 
-> ```rust
-> type Output = Bits
-> ```
-> 
-> The resulting type after applying the ^ operator.
-> 
-> ```rust
-> let x1 = Bits::from([0x20, 0x30, 0x40]);
-> let y1 = Bits::from([0xA0, 0xB0, 0xC0]);
-> 
-> assert_eq!(x1 ^ &y1, Bits::from([0x80, 0x80, 0x80]));
-> 
-> let x2 = Bits::from([0x20, 0x30, 0x40]);
-> let y2 = Bits::from([0x0A, 0xB0, 0xC0]);
-> 
-> assert_eq!(x2.len(), 23);
-> assert_eq!(y2.len(), 24);
-> 
-> let z = x2 ^ &y2;
-> 
-> assert_eq!(z.len(), 24);
-> ```
-
-
-
-## `impl BitXor for Bits`
+## `BitXorAssign`
 
 ---
 
 > ```rust
-> fn bitxor(self, rhs: Self) -> Self::Output
-> ```
-> 
-> Bitwise exclusive or of two bit strings.
-> 
-> ```rust
-> type Output = Bits
-> ```
-> 
-> The resulting type after applying the ^ operator.
-> 
-> ```rust
-> let x1 = Bits::from([0x20, 0x30, 0x40]);
-> let y1 = Bits::from([0xA0, 0xB0, 0xC0]);
-> 
-> assert_eq!(x1 ^ y1, Bits::from([0x80, 0x80, 0x80]));
-> 
-> let x2 = Bits::from([0x20, 0x30, 0x40]);
-> let y2 = Bits::from([0x0A, 0xB0, 0xC0]);
-> 
-> assert_eq!(x2.len(), 23);
-> assert_eq!(y2.len(), 24);
-> 
-> let z = x2 ^ y2;
-> 
-> assert_eq!(z.len(), 24);
-> ```
-
-
-
-## `impl BitXorAssign<&Bits> for Bits`
-
----
-
-> ```rust
+> fn bitxor_assign(&mut self, rhs: Bits)
 > fn bitxor_assign(&mut self, rhs: &Bits)
 > ```
 > 
@@ -1992,52 +1725,24 @@
 > assert_eq!(x2.len(), 24);
 > ```
 
-## `impl BitXorAssign for Bits`
+
+## `Clone`
 
 ---
 
 > ```rust
-> fn bitxor_assign(&mut self, rhs: Self)
-> ```
-> 
-> Bitwise exclusive or of two bit strings.
-> 
-> ```rust
-> let mut x1 = Bits::from([0x20, 0x30, 0x40]);
-> let y1 = Bits::from([0xA0, 0xB0, 0xC0]);
-> 
-> x1 ^= y1;
-> 
-> assert_eq!(x1, Bits::from([0x80, 0x80, 0x80]));
-> 
-> let mut x2 = Bits::from([0x20, 0x30, 0x40]);
-> let y2 = Bits::from([0x0A, 0xB0, 0xC0]);
-> 
-> assert_eq!(x2.len(), 23);
-> assert_eq!(y2.len(), 24);
-> 
-> x2 ^= y2;
-> 
-> assert_eq!(x2.len(), 24);
-> ```
-
-## `impl Clone for Bits`
-
----
-
-> ```rust
-> fn clone(&self) -> Self
+> fn clone(&self) -> Bits
 > ```
 > 
 > Returns a copy of the value.
 
 > ```rust
-> fn clone_from(&mut self, source: &Self)
+> fn clone_from(&mut self, source: &Bits)
 > ```
 > 
 > Performs copy-assignment from source.
 
-## `impl Debug for Bits`
+## `Debug`
 
 ---
 
@@ -2048,7 +1753,7 @@
 > Formats the value using the given formatter.
 
 
-## `impl Display for Bits`
+## `Display`
 
 ---
 
@@ -2059,24 +1764,55 @@
 > Formats the value using the given formatter.
 
 
-## `impl Div<usize> for Bits`
+## `Div`
 
 ---
 
 > ```rust
-> fn div(self, index: usize) -> Self::Output
+> fn div(&self, index: usize) -> (Bits, Bits)
+> fn div(self, index: usize) -> (Bits, Bits)
 > ```
 > 
-> Performs the / operation. Read more
+> Splits the bit string.
 > 
+> When the index is greater than or equal to the length
+> of the bit string, the second element of the returned
+> pair will be empty. When the index is `0`, the first
+> element will be empty.
+>
 > ```rust
 > type Output = (Bits, Bits)
 > ```
 > 
-> The resulting type after applying the / operator.
+> The resulting type after applying splitting the bit string.
+>
+> ```rust 
+> let x1 = Bits::empty();
+> let (l1, r1) = &x1 / 11;
+>
+> assert_eq!(l1.len(), 0);
+> assert_eq!(r1.len(), 0);
+>
+> let x2 = Bits::from([0x0A, 0x0B, 0x0C]);
+> let (l2, r2) = &x2 / 20;
+>
+> assert_eq!(l2, x2);
+> assert_eq!(r2.len(), 0);
+>
+> let (l3, r3) = &x2 / 0;
+>
+> assert_eq!(l3.len(), 0);
+> assert_eq!(r3, x2);
+>
+> let (l4, r4) = x2 / 11;
+> 
+> assert_eq!(l4, Bits::slice(&[0x0A, 0x03], 11));
+> assert_eq!(r4, Bits::slice(&[0x81, 0x01], 9));
+> ```
 
 
-## `impl Drop for Bits`
+
+## `Drop`
 
 ---
 
@@ -2086,137 +1822,168 @@
 > 
 > Executes the destructor for this type.
 
-
-## `impl From<&[bool]> for Bits`
-
----
-
-> ```rust
-> fn from(bits: &[bool]) -> Self
-> ```
-> 
-> Creates a bit string from booleans.
-> 
-> ```rust
-> let bits1 = vec![true, false, true, true, false, true, true];
-> let x1 = Bits::from(bits1.as_slice());
-> 
-> assert_eq!(x1.len(), 7);
-> assert_eq!(x1, Bits::from([0x6D]));
-> 
-> let bits2 = vec![true, false, true, false, false, false, false, false, false];
-> let x2 = Bits::from(bits2.as_slice());
-> 
-> assert_eq!(x2.len(), 9);
-> assert_eq!(x2, Bits::slice(&[0x05, 0x00], 9));
-> ```
-
-## `impl From<&[u8]> for Bits`
+## `From`
 
 ---
 
 > ```rust
-> fn from(data: &[u8]) -> Self
+> fn from(bits: &[bool]) -> Bits
+> fn from(bits: [bool; N]) -> Bits
+> fn from(bits: Vec<bool>) -> Bits
+> fn from(data: &[u8]) -> Bits
+> fn from(bytes: [u8; N]) -> Bits
+> fn from(bytes: Vec<u8>) -> Bits
 > ```
 > 
-> Converts to this type from the input type.
+> Creates a bit string from the given sequence. When the input is a sequence of `u8`, the resulting bit string is
+> trimmed of leading zeros.
+> 
+> ```rust
+> let bools = vec![true, false, true, true, false, true, true];
+> let bits = Bits::from(bools.as_slice());
+> 
+> assert_eq!(bits.len(), 7);
+> assert_eq!(bits, Bits::from([0x6D]));
+> 
+> let bools = vec![true, false, true, false, false, false, false, false, false];
+> let bits = Bits::from(bools);
+> 
+> assert_eq!(bits.len(), 9);
+> assert_eq!(bits, Bits::slice(&[0x05, 0x00], 9));
+>
+> let bits = Bits::from([0x0A, 0x0B, 0x0C, 0x00]);
+>
+> assert_eq!(x.len(), 20);
+> ```
 
-
-## `impl<const N: usize> From<[bool; N]> for Bits`
+## `From<Bits>`
 
 ---
 
 > ```rust
-> fn from(bits: [bool; N]) -> Self
-> ```
+> fn from(bits: Bits) -> f32
+> fn from(bits: Bits) -> f64
+> fn from(bits: Bits) -> i8
+> fn from(bits: Bits) -> i16
+> fn from(bits: Bits) -> i32
+> fn from(bits: Bits) -> i64
+> fn from(bits: Bits) -> isize
+> fn from(bits: Bits) -> u8
+> fn from(bits: Bits) -> u32
+> fn from(bits: Bits) -> u64
+> fn from(bits: Bits) -> usize
+> fn from(bits: Bits) -> Vec<bool>
+> fn from(bits: Bits) -> Vec<f32>
+> fn from(bits: Bits) -> Vec<f64>
+> fn from(bits: Bits) -> Vec<i8>
+> fn from(bits: Bits) -> Vec<i16>
+> fn from(bits: Bits) -> Vec<i32>
+> fn from(bits: Bits) -> Vec<i64>
+> fn from(bits: Bits) -> Vec<isize>
+> fn from(bits: Bits) -> Vec<u8>
+> fn from(bits: Bits) -> Vec<u16>
+> fn from(bits: Bits) -> Vec<u32>
+> fn from(bits: Bits) -> Vec<u64>
+> fn from(bits: Bits) -> Vec<usize>
+>```
 > 
-> Creates a bit string from booleans.
-> 
+> Converts a bit string to a given type. For a non-consuming version of each implementation use the
+> [`bits_as`](/bit-byte-bit/reference/bits-as.md) module.
+>
+>
 > ```rust
-> let x1 = Bits::from([true, false, true, true, false, true, true]);
+> let bits = Bits::new([0x10, 0x32]);
+> let bools = Vec::<bool>::from(&bits);
+>
+> assert_eq!(bools.len(), bits.len());
+>
+> assert_eq!(
+>     bools,
+>     vec![
+>         false, false, false, false, true, false, false, false,
+>         false, true, false, false, true, true, false, false
+>     ]
+> );
+>
+> let bits = Bits::new([0x10, 0x32, 0x54, 0x76, 0x98, 0xBA, 0xDC, 0xFE]);
+> let floats = Vec::<f32>::from(&bits);
+>
+> assert_eq!(floats.len(), 2);
+> assert_eq!(floats, vec![f32::from_bits(0x76543210), f32::from_bits(0xFEDCBA98)]);
+>
+> let floats = Vec::<f32>::from(&bits.xrange(0..24));
+>
+> assert_eq!(floats.len(), 1);
+> assert_eq!(floats, vec![f32::from_bits(0x00543210)]);
+>
+> let bits = Bits::new([0x10, 0xFE]);
+> let ishorts = Vec::<i16>::from(&bits);
+>
+> assert_eq!(ishorts.len(), 1);
+> assert_eq!(ishorts, vec![0xFE10u16 as i16]);
+>
+> let bits = Bits::from([0x10, 0x5E]);
+> let ishorts = Vec::<i16>::from(&bits);
+>
+> assert_eq!(ishorts.len(), 1);
+> assert_eq!(ishorts, vec![0xDE10u16 as i16]);
 > 
-> assert_eq!(x1.len(), 7);
-> assert_eq!(x1, Bits::from([0x6D]));
-> 
-> let x2 = Bits::from([true, false, true, false, false, false, false, false, false]);
-> 
-> assert_eq!(x2.len(), 9);
-> assert_eq!(x2, Bits::slice(&[0x05, 0x00], 9));
+> let bits = Bits::new([0x10, 0x32, 0x54, 0x76]);
+> let uints = Vec::<u32>::from(&bits);
+>
+> assert_eq!(uints.len(), 1);
+> assert_eq!(uints, vec![0x76543210]);
+>
+> let bits = Bits::from([0x10, 0x32, 0x54, 0x76]);
+> let uints = Vec::<u32>::from(&bits);
+>
+> assert_eq!(uints.len(), 1);
+> assert_eq!(uints, vec![0x76543210]);
+>
+> let bits = Bits::new([0x10, 0x32, 0x54, 0x76, 0x98, 0xBA, 0xDC, 0xFE]);
+> let float = f64::from(&bits);
+>
+> assert_eq!(float, f64::from_bits(0xFEDCBA9876543210));
+>
+> let bits = Bits::new([0x10, 0x32, 0x54]);
+> let float = f64::from(&bits);
+>
+> assert_eq!(float, f64::from_bits(0x0000000000543210));
+>
+> let bits = Bits::new([0xFE]);
+> let ibyte = i8::from(&bits);
+>
+> assert_eq!(ibyte, 0xFEu8 as i8);
+>
+> let bits = Bits::from([0x5E]);
+> let ibyte = i8::from(&bits);
+>
+> assert_eq!(ibyte, 0xDEu8 as i8);
+>
+> let byte = u8::from(&bits);
+>
+> assert_eq!(byte, 0x5E);
 > ```
 
-# `impl<const N: usize> From<[u8; N]> for Bits`
+
+## `FromIterator`
 
 ---
 
 > ```rust
-> fn from(bytes: [u8; N]) -> Self
-> ```
-> 
-> Converts to this type from the input type.
-
-## `impl From<Vec<bool>> for Bits`
-
----
-
-> ```rust
-> fn from(bits: Vec<bool>) -> Self
-> ```
-> 
-> Creates a bit string from booleans.
-> 
-> ```rust
-> let bits1 = vec![true, false, true, true, false, true, true];
-> let x1 = Bits::from(bits1);
-> 
-> assert_eq!(x1.len(), 7);
-> assert_eq!(x1, Bits::from([0x6D]));
-> 
-> let bits2 = vec![true, false, true, false, false, false, false, false, false];
-> let x2 = Bits::from(bits2);
-> 
-> assert_eq!(x2.len(), 9);
-> assert_eq!(x2, Bits::slice(&[0x05, 0x00], 9));
-> ```
-
-## `impl From<Vec<u8>> for Bits`
-
----
-
-> ```rust
-> fn from(bytes: Vec<u8>) -> Self
-> ```
-> 
-> Converts to this type from the input type.
-
-
-## `impl FromIterator<bool> for Bits`
-
----
-
-> ```rust
-> fn from_iter<I: IntoIterator<Item = bool>>(iter: I) -> Self
-> ```
-> 
-> Creates a value from an iterator. Read more
-
-
-## `impl FromIterator<u8> for Bits`
-
----
-
-> ```rust
-> fn from_iter<I: IntoIterator<Item = u8>>(iter: I) -> Self
+> fn from_iter<I: IntoIterator<Item = bool>>(iter: I) -> Bits
+> fn from_iter<I: IntoIterator<Item = u8>>(iter: I) -> Bits
 > ```
 > 
 > Creates a value from an iterator.
 
 
-## `impl IntoIterator for Bits`
+## `IntoIterator`
 
 ---
 
 > ```rust
-> fn into_iter(self) -> Self::IntoIter
+> fn into_iter(self) -> Bits::IntoIter
 > ```
 > 
 > Creates an iterator from a value.
@@ -2233,12 +2000,13 @@
 > 
 > Which kind of iterator are we turning this into?
 
-## `impl Not for &Bits`
+## `Not`
 
 ---
 
 > ```rust
-> fn not(self) -> Self::Output
+> fn not(self) -> Bits
+> fn not(&self) -> Bits
 > ```
 > 
 > Flips every bit.
@@ -2257,35 +2025,12 @@
 
 
 
-## `impl Not for Bits`
+## `Ord`
 
 ---
 
 > ```rust
-> fn not(self) -> Self::Output
-> ```
-> 
-> Flips every bit.
-> 
-> ```rust
-> type Output = Bits
-> ```
-> 
-> The resulting type after applying the ! operator.
-> 
-> ```rust
-> let x = Bits::from([0x0A, 0x0B, 0x0C]);
-> 
-> assert_eq!(!x, Bits::slice(&[0xF5, 0xF4, 0x03], 20));
-> ```
-
-
-## `impl Ord for Bits`
-
----
-
-> ```rust
-> fn cmp(&self, other: &Self) -> Ordering
+> fn cmp(&self, other: &Bits) -> Ordering
 > ```
 > 
 > Compares a bit string with another
@@ -2300,33 +2045,33 @@
 > ```
 
 > ```rust
-> fn max(self, other: Self) -> Self
-> where Self: Sized
+> fn max(self, other: Bits) -> Bits
+> where Bits: Sized
 > ```
 > 
 > Compares and returns the maximum of two values.
 
 > ```rust
-> fn min(self, other: Self) -> Self
-> where Self: Sized
+> fn min(self, other: Bits) -> Bits
+> where Bits: Sized
 > ```
 > 
 > Compares and returns the minimum of two values.
 
 > ```rust
-> fn clamp(self, min: Self, max: Self) -> Self
-> where Self: Sized
+> fn clamp(self, min: Bits, max: Bits) -> Bits
+> where Bits: Sized
 > ```
 > 
-> Restrict a value to a certain interval. Read more
+> Restrict a value to a certain interval.
 
 
-## `impl PartialEq for Bits`
+## `PartialEq`
 
 ---
 
 > ```rust
-> fn eq(&self, other: &Self) -> bool
+> fn eq(&self, other: &Bits) -> bool
 > ```
 > 
 > Whether two bit strings are equal.
@@ -2355,12 +2100,12 @@
 > 
 > Tests for !=. The default implementation is almost always sufficient, and should not be overridden without very good reason.
 
-## `impl PartialOrd for Bits`
+## `PartialOrd`
 
 ---
 
 > ```rust
-> fn partial_cmp(&self, other: &Self) -> Option<Ordering>
+> fn partial_cmp(&self, other: &Bits) -> Option<Ordering>
 > ```
 > 
 > Compares a bit string with another
@@ -2400,16 +2145,25 @@
 > Tests greater than or equal to (for self and other) and is used by the >= operator.
 
 
-## `impl Shl<&usize> for &Bits`
+## `Shl`
 
 ---
 
 > ```rust
-> fn shl(self, count: &usize) -> Self::Output
+> fn shl(&self, count: &usize) -> Bits
+> fn shl(self, count: &usize) -> Bits
+> fn shl(&self, count: usize) -> Bits
+> fn shl(self, count: usize) -> Bits
 > ```
 > 
 > Shifts out upper bits, shifting in zeros on the lower end.
 > 
+> ```rust
+> type Output = Bits
+> ```
+> 
+> The resulting type after applying the << operator.
+>
 > ```rust
 > let x1 = Bits::from([0x0A, 0x0B, 0x0C]);
 > let s1 = &x1 << &17;
@@ -2423,112 +2177,15 @@
 > assert_eq!(s2, Bits::new([0xA0, 0xB0, 0xC0]));
 > assert_eq!(s2.len(), x2.len());
 > ```
-> 
-> ```rust
-> type Output = Bits
-> ```
-> 
-> The resulting type after applying the << operator.
 
 
-## `impl Shl<&usize> for Bits`
-
----
-
-> ```rust
-> fn shl(self, count: &usize) -> Self::Output
-> ```
-> 
-> Shifts out upper bits, shifting in zeros on the lower end.
-> 
-> ```rust
-> let x1 = Bits::from([0x0A, 0x0B, 0x0C]);
-> let s1 = x1 << &17;
-> 
-> assert_eq!(s1, Bits::slice(&[0x00, 0x00, 0x04], 20));
-> assert_eq!(s1.len(), 20);
-> 
-> let x2 = Bits::new([0x0A, 0x0B, 0x0C]);
-> let s2 = x2 << &4;
-> 
-> assert_eq!(s2, Bits::new([0xA0, 0xB0, 0xC0]));
-> assert_eq!(s2.len(), 24);
-> ```
-> 
-> ```rust
-> type Output = Bits
-> ```
-> 
-> The resulting type after applying the << operator.
-
-
-## `impl Shl<usize> for &Bits`
-
----
-
-> ```rust
-> fn shl(self, count: usize) -> Self::Output
-> ```
-> 
-> Shifts out upper bits, shifting in zeros on the lower end.
-> 
-> ```rust
-> let x1 = Bits::from([0x0A, 0x0B, 0x0C]);
-> let s1 = &x1 << 17;
-> 
-> assert_eq!(s1, Bits::slice(&[0x00, 0x00, 0x04], 20));
-> assert_eq!(s1.len(), x1.len());
-> 
-> let x2 = Bits::new([0x0A, 0x0B, 0x0C]);
-> let s2 = &x2 << 4;
-> 
-> assert_eq!(s2, Bits::new([0xA0, 0xB0, 0xC0]));
-> assert_eq!(s2.len(), x2.len());
-> ```
-> 
-> ```rust
-> type Output = Bits
-> ```
-> 
-> The resulting type after applying the << operator.
-
-## `impl Shl<usize> for Bits`
-
----
-
-> ```rust
-> fn shl(self, count: usize) -> Self::Output
-> ```
-> 
-> Shifts out upper bits, shifting in zeros on the lower end.
-> 
-> ```rust
-> let x1 = Bits::from([0x0A, 0x0B, 0x0C]);
-> let s1 = x1 << 17;
-> 
-> assert_eq!(s1, Bits::slice(&[0x00, 0x00, 0x04], 20));
-> assert_eq!(s1.len(), 20);
-> 
-> let x2 = Bits::new([0x0A, 0x0B, 0x0C]);
-> let s2 = x2 << 4;
-> 
-> assert_eq!(s2, Bits::new([0xA0, 0xB0, 0xC0]));
-> assert_eq!(s2.len(), 24);
-> ```
-> 
-> ```rust
-> type Output = Bits
-> ```
-> 
-> The resulting type after applying the << operator.
-
-
-## `impl ShlAssign<&usize> for Bits`
+## `ShlAssign`
 
 ---
 
 > ```rust
 > fn shl_assign(&mut self, count: &usize)
+> fn shl_assign(&mut self, count: usize)
 > ```
 > 
 > Shifts out upper bits, shifting in zeros on the lower end.
@@ -2549,42 +2206,26 @@
 > assert_eq!(x2.len(), 24);
 > ```
 
-## `impl ShlAssign<usize> for Bits`
+
+## `Shr`
 
 ---
 
 > ```rust
-> fn shl_assign(&mut self, count: usize)
-> ```
-> 
-> Shifts out upper bits, shifting in zeros on the lower end.
-> 
-> ```rust
-> let mut x1 = Bits::from([0x0A, 0x0B, 0x0C]);
-> 
-> x1 <<= 17;
-> 
-> assert_eq!(x1, Bits::slice(&[0x00, 0x00, 0x04], 20));
-> assert_eq!(x1.len(), 20);
-> 
-> let mut x2 = Bits::new([0x0A, 0x0B, 0x0C]);
-> 
-> x2 <<= 4;
-> 
-> assert_eq!(x2, Bits::new([0xA0, 0xB0, 0xC0]));
-> assert_eq!(x2.len(), 24);
-> ```
-
-## `impl Shr<&usize> for &Bits`
-
----
-
-> ```rust
-> fn shr(self, count: &usize) -> Self::Output
+> fn shr(&self, count: &usize) -> Bits
+> fn shr(self, count: &usize) -> Bits
+> fn shr(&self, count: usize) -> Bits
+> fn shr(self, count: usize) -> Bits
 > ```
 > 
 > Shifts out lower bits, shifting zeros into the upper bits.
 > 
+> ```rust
+> type Output = Bits
+> ```
+> 
+> The resulting type after applying the >> operator.
+>
 > ```rust
 > let x1 = Bits::from([0x0A, 0x0B, 0x0C]);
 > let s1 = &x1 >> &17;
@@ -2598,112 +2239,14 @@
 > assert_eq!(s2.len(), 24);
 > assert_eq!(s2, Bits::new([0xB0, 0xC0, 0x00]));
 > ```
-> 
-> ```rust
-> type Output = Bits
-> ```
-> 
-> The resulting type after applying the >> operator.
 
-
-## `impl Shr<&usize> for Bits`
-
----
-
-> ```rust
-> fn shr(self, count: &usize) -> Self::Output
-> ```
-> 
-> Shifts out lower bits, shifting zeros into the upper bits.
-> 
-> ```rust
-> let x1 = Bits::from([0x0A, 0x0B, 0x0C]);
-> let s1 = x1 >> &17;
-> 
-> assert_eq!(s1.len(), 20);
-> assert_eq!(s1, Bits::slice(&[0x06, 0x00, 0x00], 20));
-> 
-> let x2 = Bits::new([0x0A, 0x0B, 0x0C]);
-> let s2 = x2 >> &4;
-> 
-> assert_eq!(s2.len(), 24);
-> assert_eq!(s2, Bits::new([0xB0, 0xC0, 0x00]));
-> ```
-> 
-> ```rust
-> type Output = Bits
-> ```
-> 
-> The resulting type after applying the >> operator.
-
-## `impl Shr<usize> for &Bits`
-
----
-
-> ```rust
-> fn shr(self, count: usize) -> Self::Output
-> ```
-> 
-> Shifts out lower bits, shifting zeros into the upper bits.
-> 
-> ```rust
-> let x1 = Bits::from([0x0A, 0x0B, 0x0C]);
-> let s1 = &x1 >> 17;
-> 
-> assert_eq!(s1.len(), x1.len());
-> assert_eq!(s1, Bits::slice(&[0x06, 0x00, 0x00], 20));
-> 
-> let x2 = Bits::new([0x0A, 0x0B, 0x0C]);
-> let s2 = &x2 >> 4;
-> 
-> assert_eq!(s2.len(), x2.len());
-> assert_eq!(s2, Bits::new([0xB0, 0xC0, 0x00]));
-> ```
-> 
-> ```rust
-> type Output = Bits
-> ```
-> 
-> The resulting type after applying the >> operator.
-
-
-## `impl Shr<usize> for Bits`
-
----
-
-> ```rust
-> fn shr(self, count: usize) -> Self::Output
-> ```
-> 
-> Shifts out lower bits, shifting zeros into the upper bits.
-> 
-> ```rust
-> let x1 = Bits::from([0x0A, 0x0B, 0x0C]);
-> let s1 = x1 >> 17;
-> 
-> assert_eq!(s1.len(), 20);
-> assert_eq!(s1, Bits::slice(&[0x06, 0x00, 0x00], 20));
-> 
-> let x2 = Bits::new([0x0A, 0x0B, 0x0C]);
-> let s2 = x2 >> 4;
-> 
-> assert_eq!(s2.len(), 24);
-> assert_eq!(s2, Bits::new([0xB0, 0xC0, 0x00]));
-> ```
-> 
-> ```rust
-> type Output = Bits
-> ```
-> 
-> The resulting type after applying the >> operator.
-
-
-## `impl ShrAssign<&usize> for Bits`
+## `ShrAssign`
 
 ---
 
 > ```rust
 > fn shr_assign(&mut self, count: &usize)
+> fn shr_assign(&mut self, count: usize)
 > ```
 > 
 > Shifts out lower bits, shifting zeros into the upper bits.
@@ -2724,34 +2267,8 @@
 > assert_eq!(x2, Bits::new([0xB0, 0xC0, 0x00]));
 > ```
 
-## `impl ShrAssign<usize> for Bits`
+## `Eq`
 
----
+## `Send`
 
-> ```rust
-> fn shr_assign(&mut self, count: usize)
-> ```
-> 
-> Shifts out lower bits, shifting zeros into the upper bits.
-> 
-> ```rust
-> let mut x1 = Bits::from([0x0A, 0x0B, 0x0C]);
-> 
-> x1 >>= 17;
-> 
-> assert_eq!(x1, Bits::slice(&[0x06, 0x00, 0x00], 20));
-> assert_eq!(x1.len(), 20);
-> 
-> let mut x2 = Bits::new([0x0A, 0x0B, 0x0C]);
-> 
-> x2 >>= 4;
-> 
-> assert_eq!(x2, Bits::new([0xB0, 0xC0, 0x00]));
-> assert_eq!(x2.len(), 24);
-> ```
-
-## `impl Eq for Bits`
-
-## `impl Send for Bits`
-
-## `impl Sync for Bits`
+## `Sync`

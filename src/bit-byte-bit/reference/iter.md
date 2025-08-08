@@ -1,14 +1,12 @@
-# `Iter<'bits>`
+# `Iter`
 
 ---
 
-Iterator over individual bits of a bit string.
-
 ```rust
-pub struct Iter<'bits> { ... }
+pub struct Iter { ... }
 ```
 
-## `impl<'bits> Iter<'bits>`
+## `impl Iter`
 
 ---
 
@@ -32,7 +30,7 @@ pub struct Iter<'bits> { ... }
 > This method behaves like `Iterator::skip`, but doesn’t rely on repeated calls to `Iterator::next`.
 
 
-## `impl<'bits> DoubleEndedIterator for Iter<'bits>`
+## `impl DoubleEndedIterator for Iter`
 
 ---
 
@@ -87,7 +85,7 @@ pub struct Iter<'bits> { ... }
 > 
 > Searches for an element of an iterator from the back that satisfies a predicate.
 
-## `impl<'bits> ExactSizeIterator for Iter<'bits>`
+## `impl ExactSizeIterator for Iter`
 
 ---
 
@@ -106,7 +104,7 @@ pub struct Iter<'bits> { ... }
 > 
 > Returns true if the iterator is empty.
 
-## `impl<'bits> Iterator for Iter<'bits>`
+## `impl Iterator for Iter`
 
 ---
 
@@ -830,4 +828,4 @@ pub struct Iter<'bits> { ... }
 > 
 > Checks if the elements of this iterator are sorted using the given key extraction function.
 
-## `impl<'bits> FusedIterator for Iter<'bits>`
+## `impl FusedIterator for Iter`

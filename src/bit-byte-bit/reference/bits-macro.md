@@ -16,7 +16,6 @@ macro_rules! bits {
 
 Macro implementing a subset of the Bits constructors
 
-## Example
 
 ``` rust
 let x1 = bits![];

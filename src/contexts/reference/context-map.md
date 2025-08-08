@@ -6,9 +6,163 @@
 pub struct ContextManager<K, V, S = RandomState> { ... }
 ```
 
-## `impl<K, V> ContextManager<K, V, RandomState>`
+# Implementations
 
-### `K: Hash + Eq`
+## `ContextManager<K, V, S>`
+
+<span style="font-size:2.5rem">`K: Hash + Eq + Clone, V: Clone, S: BuildHasher + Clone`</span>
+
+---
+
+> ```rust
+> pub fn fork(&self) -> Option<ContextManager<K, V, S>>
+> ```
+> 
+> Creates a new context manager initialized with a clone of the current local context.
+> 
+> Equivalent to `manager.fork_from(0)`.
+> 
+> ```rust
+> let mut manager = ContextManager::with_capacity(3);
+> 
+> assert_eq!(manager.fork(), None);
+> 
+> manager.push(HashMap::from([("w", 1)]));
+> manager.push(HashMap::from([("x", 2)]));
+> manager.push(HashMap::from([("y", 3)]));
+> 
+> let forked = manager.fork().unwrap();
+> 
+> assert_eq!(forked.get("w"), None);
+> assert_eq!(forked.get("x"), None);
+> assert_eq!(&forked["y"], &3);
+> ```
+
+> ```rust
+> pub fn fork_from(&self, index: usize) -> Option<ContextManager<K, V, S>>
+> ```
+> 
+> Creates a new context manager initialized with clones of all contexts from the local one up to 
+> and including the one at index.
+> 
+> `manager.fork_from(manager.len() - 1)` is equivalent to `manager.clone()`.
+> 
+> ```rust
+> let mut manager = ContextManager::with_capacity(3);
+> 
+> manager.push(HashMap::from([("w", 1)]));
+> manager.push(HashMap::from([("x", 2)]));
+> manager.push(HashMap::from([("y", 3)]));
+> 
+> let forked = manager.fork_from(1).unwrap();
+> 
+> assert_eq!(forked.get("w"), None);
+> assert_eq!(&forked["x"], &2);
+> assert_eq!(&forked["y"], &3);
+> 
+> let invalid_fork = manager.fork_from(3);
+> 
+> assert_eq!(invalid_fork, None);
+> ```
+
+> ```rust
+> pub fn push_local(&mut self)
+> ```
+> 
+> Adds a new context that is a clone of the local context, if one is present.
+> 
+> ```rust
+> let mut manager = ContextManager::from([("w", 1)]);
+> manager.push_local();
+> 
+> assert_eq!(&manager["w"], &1);
+> 
+> let w = manager.get_mut("w").unwrap();
+> 
+> *w = 2;
+> 
+> assert_eq!(&manager["w"], &2);
+> 
+> manager.pop();
+> 
+> assert_eq!(&manager["w"], &1);
+> ```
+
+> ```rust
+> pub fn push_with_local(&mut self, context: HashMap<K, V, S>)
+> ```
+> 
+> Adds a new local context merged with the previous local context.
+> 
+> The new context has higher precedence.
+> 
+> ```rust
+> let mut manager = ContextManager::from([("w", 1)]);
+> let context = HashMap::from([("x", 2)]);
+> 
+> manager.push_with_local(context);
+> 
+> assert_eq!(manager.get_local("w"), Some(&1));
+> assert_eq!(&manager["x"], &2);
+> 
+> manager.pop();
+> 
+> assert_eq!(&manager["w"], &1);
+> assert_eq!(manager.get("x"), None);
+> ```
+
+
+<span style="font-size:2.5rem">`K: Ord`</span>
+
+---
+
+> ```rust
+> pub fn collapse_ordered(self) -> BTreeMap<K, V>
+> ```
+> 
+> Aggregates all contexts into a single map where keys have their most recent value.
+> 
+> ```rust
+> let mut manager = ContextManager::with_capacity(3);
+> 
+> manager.push(HashMap::from([("y", 3)]));
+> manager.push(HashMap::from([("w", 1), ("x", 2)]));
+> manager.push(HashMap::from([("y", 4), ("z", 3)]));
+> 
+> let map = manager.collapse_ordered();
+> 
+> assert_eq!(&map["w"], &1);
+> assert_eq!(&map["x"], &2);
+> assert_eq!(&map["y"], &4);
+> assert_eq!(&map["z"], &3);
+> ```
+
+> ```rust
+> pub fn collapse_into_ordered(self, src: &mut BTreeMap<K, V>)
+> ```
+> 
+> Aggregates all contexts storing each key and its most recent value into src.
+> 
+> ```rust
+> let mut manager = ContextManager::with_capacity(3);
+> 
+> manager.push(HashMap::from([("y", 4)]));
+> manager.push(HashMap::from([("w", 2), ("x", 3)]));
+> 
+> let mut map = BTreeMap::from([("v", 1), ("x", 2), ("z", 5)]);
+> 
+> manager.collapse_into_ordered(&mut map);
+> 
+> assert_eq!(&map["v"], &1);
+> assert_eq!(&map["w"], &2);
+> assert_eq!(&map["x"], &3);
+> assert_eq!(&map["y"], &4);
+> assert_eq!(&map["z"], &5);
+> ```
+
+## `ContextManager<K, V, RandomState>` 
+
+<span style="font-size:2.5rem">`K: Hash + Eq`</span>
 
 ---
 
@@ -93,94 +247,6 @@ pub struct ContextManager<K, V, S = RandomState> { ... }
 > assert_eq!(manager.get_local("x"), None);
 > ```
 
-
-## `impl<K, V, S> ContextManager<K, V, S>`
-
----
-
-> ```rust
-> pub fn is_empty(&self) -> bool
-> ```
-> 
-> Returns the number of contexts in the manager.
-> 
-> ```rust
-> let mut manager = ContextManager::<&str, i32>::new();
-> 
-> assert!(manager.is_empty());
-> 
-> manager.push_empty();
-> 
-> assert!(!manager.is_empty());
-> 
-> manager = ContextManager::with_empty();
-> 
-> assert!(!manager.is_empty());
-> ```
-
-> ```rust
-> pub fn len(&self) -> usize
-> ```
-> 
-> Returns the number of contexts in the manager.
-> 
-> ```rust
-> let mut manager = ContextManager::<&str, i32>::new();
-> 
-> assert_eq!(manager.len(), 0);
-> 
-> manager.push_empty();
-> 
-> assert_eq!(manager.len(), 1);
-> 
-> manager = ContextManager::with_empty();
-> 
-> assert_eq!(manager.len(), 1);
-> ```
-
-> ```rust
-> pub fn pop(&mut self) -> Option<HashMap<K, V, S>>
-> ```
-> 
-> Removes the local context if one is present.
-> 
-> ```rust
-> let mut manager = ContextManager::with_empty();
-> 
-> manager.insert("x", 1);
-> 
-> let popped = manager.pop();
-> 
-> assert!(popped.is_some());
-> assert_eq!(popped.unwrap().get("x"), Some(&1));
-> assert_eq!(manager.pop(), None);
-> ```
-
-> ```rust
-> pub fn push(&mut self, context: HashMap<K, V, S>)
-> ```
-> 
-> Adds a new local context.
-> 
-> ```rust
-> let mut manager = ContextManager::with_empty();
-> 
-> manager.insert("x", 1);
-> 
-> assert_eq!(&manager["x"], &1);
-> assert_eq!(manager.get("y"), None);
-> 
-> manager.push(HashMap::from([("y", 2)]));
-> 
-> assert_eq!(&manager["y"], &2);
-> ```
-
-
-## `impl<K, V, S> ContextManager<K, V, S>`
-
-### `K: Hash + Eq, S: BuildHasher`
-
----
 
 > ```rust
 > pub fn collapse_into(self, src: &mut HashMap<K, V, S>)
@@ -459,180 +525,31 @@ pub struct ContextManager<K, V, S = RandomState> { ... }
 > assert_eq!(manager.remove_all(&"x"), vec![]);
 > ```
 
-## `impl<K, V, S> ContextManager<K, V, S>`
+# Traits
 
-### `K: Hash + Eq + Clone, V: Clone, S: BuildHasher + Clone`
+---
+
+## `Clone`
+
+<span style="font-size:2.5rem">`K: Clone, V: Clone, S: Clone`</span>
 
 ---
 
 > ```rust
-> pub fn fork(&self) -> Option<ContextManager<K, V, S>>
-> ```
-> 
-> Creates a new context manager initialized with a clone of the current local context.
-> 
-> Equivalent to `manager.fork_from(0)`.
-> 
-> ```rust
-> let mut manager = ContextManager::with_capacity(3);
-> 
-> assert_eq!(manager.fork(), None);
-> 
-> manager.push(HashMap::from([("w", 1)]));
-> manager.push(HashMap::from([("x", 2)]));
-> manager.push(HashMap::from([("y", 3)]));
-> 
-> let forked = manager.fork().unwrap();
-> 
-> assert_eq!(forked.get("w"), None);
-> assert_eq!(forked.get("x"), None);
-> assert_eq!(&forked["y"], &3);
-> ```
-
-> ```rust
-> pub fn fork_from(&self, index: usize) -> Option<ContextManager<K, V, S>>
-> ```
-> 
-> Creates a new context manager initialized with clones of all contexts from the local one up to 
-> and including the one at index.
-> 
-> `manager.fork_from(manager.len() - 1)` is equivalent to `manager.clone()`.
-> 
-> ```rust
-> let mut manager = ContextManager::with_capacity(3);
-> 
-> manager.push(HashMap::from([("w", 1)]));
-> manager.push(HashMap::from([("x", 2)]));
-> manager.push(HashMap::from([("y", 3)]));
-> 
-> let forked = manager.fork_from(1).unwrap();
-> 
-> assert_eq!(forked.get("w"), None);
-> assert_eq!(&forked["x"], &2);
-> assert_eq!(&forked["y"], &3);
-> 
-> let invalid_fork = manager.fork_from(3);
-> 
-> assert_eq!(invalid_fork, None);
-> ```
-
-> ```rust
-> pub fn push_local(&mut self)
-> ```
-> 
-> Adds a new context that is a clone of the local context, if one is present.
-> 
-> ```rust
-> let mut manager = ContextManager::from([("w", 1)]);
-> manager.push_local();
-> 
-> assert_eq!(&manager["w"], &1);
-> 
-> let w = manager.get_mut("w").unwrap();
-> 
-> *w = 2;
-> 
-> assert_eq!(&manager["w"], &2);
-> 
-> manager.pop();
-> 
-> assert_eq!(&manager["w"], &1);
-> ```
-
-> ```rust
-> pub fn push_with_local(&mut self, context: HashMap<K, V, S>)
-> ```
-> 
-> Adds a new local context merged with the previous local context.
-> 
-> The new context has higher precedence.
-> 
-> ```rust
-> let mut manager = ContextManager::from([("w", 1)]);
-> let context = HashMap::from([("x", 2)]);
-> 
-> manager.push_with_local(context);
-> 
-> assert_eq!(manager.get_local("w"), Some(&1));
-> assert_eq!(&manager["x"], &2);
-> 
-> manager.pop();
-> 
-> assert_eq!(&manager["w"], &1);
-> assert_eq!(manager.get("x"), None);
-> ```
-
-## `impl<K, V, S> ContextManager<K, V, S>`
-
-### `K: Ord`
-
----
-
-> ```rust
-> pub fn collapse_ordered(self) -> BTreeMap<K, V>
-> ```
-> 
-> Aggregates all contexts into a single map where keys have their most recent value.
-> 
-> ```rust
-> let mut manager = ContextManager::with_capacity(3);
-> 
-> manager.push(HashMap::from([("y", 3)]));
-> manager.push(HashMap::from([("w", 1), ("x", 2)]));
-> manager.push(HashMap::from([("y", 4), ("z", 3)]));
-> 
-> let map = manager.collapse_ordered();
-> 
-> assert_eq!(&map["w"], &1);
-> assert_eq!(&map["x"], &2);
-> assert_eq!(&map["y"], &4);
-> assert_eq!(&map["z"], &3);
-> ```
-
-> ```rust
-> pub fn collapse_into_ordered(self, src: &mut BTreeMap<K, V>)
-> ```
-> 
-> Aggregates all contexts storing each key and its most recent value into src.
-> 
-> ```rust
-> let mut manager = ContextManager::with_capacity(3);
-> 
-> manager.push(HashMap::from([("y", 4)]));
-> manager.push(HashMap::from([("w", 2), ("x", 3)]));
-> 
-> let mut map = BTreeMap::from([("v", 1), ("x", 2), ("z", 5)]);
-> 
-> manager.collapse_into_ordered(&mut map);
-> 
-> assert_eq!(&map["v"], &1);
-> assert_eq!(&map["w"], &2);
-> assert_eq!(&map["x"], &3);
-> assert_eq!(&map["y"], &4);
-> assert_eq!(&map["z"], &5);
-> ```
-
-## `impl<K, V, S> Clone for ContextManager<K, V, S>`
-
-### `K: Clone, V: Clone, S: Clone`
-
----
-
-> ```rust
-> fn clone(&self) -> Self
+> fn clone(&self) -> ContextManager<K, V, S>
 > ```
 > 
 > Returns a duplicate of the value. Read more
 
 > ```rust
-> const fn clone_from(&mut self, source: &Self)
+> const fn clone_from(&mut self, source: &ContextManager<K, V, S>)
 > ```
 > 
 > Performs copy-assignment from source. Read more
 
-## `impl<K, V, S> Debug for ContextManager<K, V, S>`
+## `Debug`
 
-### K: Debug, V: Debug, S: Debug
+<span style="font-size:2.5rem">`K: Debug, V: Debug, S: Debug`
 
 ---
 
@@ -642,17 +559,17 @@ pub struct ContextManager<K, V, S = RandomState> { ... }
 > 
 > Formats the value using the given formatter. Read more
 
-## `impl<K, V, S> Default for ContextManager<K, V, S>`
+## `Default`
 
 > ```rust
-> fn default() -> Self
+> fn default() -> ContextManager<K, V, S>
 > ```
 > 
 > Creates an empty context manager
 
-## `impl<K, V, S> Extend<(K, V)> for ContextManager<K, V, S>`
+## `Extend<(K, V)>`
 
-### `K: Hash + Eq, S: BuildHasher + Default`
+<span style="font-size:2.5rem">`K: Hash + Eq, S: BuildHasher + Default`</span>
 
 ---
 
@@ -680,63 +597,53 @@ pub struct ContextManager<K, V, S = RandomState> { ... }
 > 
 > Reserves capacity in a collection for the given number of additional elements. Read more
 
-## `impl<K, V, const N: usize> From<[(K, V); N]> for ContextManager<K, V, RandomState>`
+## `From<[(K, V); N]>`
 
-### `K: Hash + Eq`
+<span style="font-size:2.5rem">`K: Hash + Eq`</span>
 
 ---
 
 > ```rust
-> fn from(initial: [(K, V); N]) -> Self
+> fn from(initial: [(K, V); N]) -> ContextManager<K, V, RandomState>
 > ```
 > 
 > Creates a new context manager with a first context initialized from the key-value pairs in initial.
 > 
 > Repeated keys will have all but one of the values dropped.
 
-## `impl<K, V, S, const N: usize> From<[HashMap<K, V, S>; N]> for ContextManager<K, V, S>`
+## `From`
 
-### `K: Hash + Eq, S: BuildHasher`
+<span style="font-size:2.5rem">`K: Hash + Eq, S: BuildHasher`</span>
 
 ---
 
 > ```rust
-> fn from(initial: [HashMap<K, V, S>; N]) -> Self
+> fn from(initial: [HashMap<K, V, S>; N]) -> ContextManager<K, V, S>
+> fn from(initial: HashMap<K, V, S>) -> ContextManager<K, V, S>
 > ```
 > 
 > Creates a new context manager initialized with the contexts in initial.
 > 
 > Precedence proceeds from the first context toward the last.
 
-## `impl<K, V, S> From<HashMap<K, V, S>> for ContextManager<K, V, S>`
 
-### `K: Hash + Eq, S: BuildHasher`
+## `FromIterator<(K, V)>`
 
----
-
-> ```rust
-> fn from(initial: HashMap<K, V, S>) -> Self
-> ```
-> 
-> Creates a new context manager with initial as the first context.
-
-## `impl<K, V, S> FromIterator<(K, V)> for ContextManager<K, V, S>`
-
-### `K: Hash + Eq, S: BuildHasher + Default`
+<span style="font-size:2.5rem">`K: Hash + Eq, S: BuildHasher + Default`</span>
 
 ---
 
 > ```rust
-> fn from_iter<I: IntoIterator<Item = (K, V)>>(initial: I) -> Self
+> fn from_iter<I: IntoIterator<Item = (K, V)>>(initial: I) -> ContextManager<K, V, S>
 > ```
 > 
 > Creates a new context manager with a first context initialized from the key-value pairs in initial.
 > 
 > Repeated keys will have all but one of the values dropped.
 
-## `impl<K, V, S> FromIterator<HashMap<K, V, S>> for ContextManager<K, V, S>`
+## `FromIterator<HashMap<K, V, S>>`
 
-### `K: Hash + Eq, S: BuildHasher`
+<span style="font-size:2.5rem">`K: Hash + Eq, S: BuildHasher`</span>
 
 ---
 
@@ -748,12 +655,18 @@ pub struct ContextManager<K, V, S = RandomState> { ... }
 > 
 > Precedence proceeds from the first context toward the last.
 
-## `impl<K, Q, V, S> Index<&Q> for ContextManager<K, V, S>`
+## `Index<&Q>`
 
-### `K: Hash + Eq + Borrow<Q>, Q: ?Sized + Hash + Eq, S: BuildHasher`
+<span style="font-size:2.5rem">`K: Hash + Eq + Borrow<Q>, Q: ?Sized + Hash + Eq, S: BuildHasher`</span>
 
 ---
 
+> ```rust
+> type Output = V
+> ```
+> 
+> The returned type after indexing.
+>
 > ```rust
 > fn index(&self, key: &Q) -> &V
 > ```
@@ -761,16 +674,11 @@ pub struct ContextManager<K, V, S = RandomState> { ... }
 > Returns a reference to the value associated with key.
 > 
 > Panics if the context manager is empty, or key is not found in any contexts.
-> 
-> ```rust
-> type Output = V
-> ```
-> 
-> The returned type after indexing.
 
-## `impl<K, V, S> PartialEq for ContextManager<K, V, S>`
 
-### `K: Hash + Eq, V: PartialEq, S: BuildHasher`
+## `PartialEq`
+
+<span style="font-size:2.5rem">`K: Hash + Eq, V: PartialEq, S: BuildHasher`</span>
 
 > ```rust
 > fn eq(&self, other: &ContextManager<K, V, S>) -> bool
@@ -784,6 +692,6 @@ pub struct ContextManager<K, V, S = RandomState> { ... }
 > 
 > Tests for !=. The default implementation is almost always sufficient, and should not be overridden without very good reason.
 
-## `impl<K, V, S> Eq for ContextManager<K, V, S>`
+## `Eq`
 
-### `K: Hash + Eq, V: Eq, S: BuildHasher`
+<span style="font-size:2.5rem">`K: Hash + Eq, V: Eq, S: BuildHasher`</span>
